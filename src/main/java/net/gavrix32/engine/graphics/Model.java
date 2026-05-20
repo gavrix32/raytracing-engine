@@ -51,12 +51,12 @@ public class Model {
         }
 
         List<Vector2f> coords = new ArrayList<>();
-        for (int i = 0; i < mesh.mTextureCoords(0).limit(); i++) {
-            coords.add(new Vector2f(
-                    mesh.mTextureCoords(0).get(i).x(),
-                    mesh.mTextureCoords(0).get(i).y()
-            ));
-        }
+//        for (int i = 0; i < mesh.mTextureCoords(0).limit(); i++) {
+//            coords.add(new Vector2f(
+//                    mesh.mTextureCoords(0).get(i).x(),
+//                    mesh.mTextureCoords(0).get(i).y()
+//            ));
+//        }
         for (int i = 0; i < vertices.size(); i++) {
             coords.add(new Vector2f());
         }

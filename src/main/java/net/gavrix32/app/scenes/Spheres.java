@@ -14,7 +14,7 @@ public class Spheres {
         scene = new Scene();
         scene.setName("Spheres");
         scene.setCamera(new Camera().setPosition(0, 100, -200));
-        scene.setSky("textures/sky/kiara_1_dawn_2k.hdr").setMaterial(false, 0.2f, 0, 1, false);
+        scene.setSky("textures/sky/the_sky_is_on_fire_4k.hdr").setMaterial(false, 0.2f, 0, 1, false);
         scene.addBox(new Box(
                 new Vector3f(),
                 new Vector3f(),

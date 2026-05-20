@@ -204,6 +204,7 @@ public class Renderer {
         pathtraceShader.setFloat("focus_distance", focusDistance);
         pathtraceShader.setFloat("aperture", aperture);
         pathtraceShader.setBool("sky_has_texture", scene.sky.hasTexture());
+        pathtraceShader.setBool("enable_bvh", scene.getName().equals("BVH Test"));
         pathtraceShader.setBool("debug_bvh", Gui.debugBVH.get());
         pathtraceShader.setInt("bounds_test_threshold", Gui.boundsTestThreshold[0]);
         pathtraceShader.setInt("triangle_test_threshold", Gui.triangleTestThreshold[0]);

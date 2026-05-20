@@ -64,7 +64,7 @@ struct Node {
 uniform vec3 camera_position, prev_camera_position, triangles_offset;
 uniform mat4 camera_rotation, prev_camera_rotation, triangles_rotation;
 uniform int samples, bounces, spheres_count, boxes_count, accumulated_samples, max_accumulated_samples, frame_index;
-uniform bool temporal_reprojection, temporal_antialiasing, sky_has_texture, russian_roulette, checkerboard_rendering;
+uniform bool temporal_reprojection, temporal_antialiasing, sky_has_texture, russian_roulette, checkerboard_rendering, enable_bvh;
 uniform sampler2D sky_texture;
 uniform sampler2D prev_color;
 uniform sampler2D prev_normal;
@@ -303,87 +303,52 @@ bool raycast(in Ray ray, out HitInfo hitInfo) {
         }
     }
     // BVH
-    /**int stack[32];
-    int index = 0;
-    stack[index++] = 0;
-    while (index > 0) {
-        int nodeIndex = stack[--index];
-        Node node = nodes[nodeIndex];
-        if (node.child_index == 0) {
-            for (int i = int(node.triangle_start_index); i < int(node.triangle_start_index + node.triangles_count); i++) {
-                vec3 normal;
-                Triangle tri = triangles[i];
-                vec3 tuv = intersect_triangle(ray, tri.v1, tri.v2, tri.v3, normal);
-                dist = tuv.x;
-                triangleTests++;
-                if (dist > 0 && dist < hitInfo.distance) {
-                    hit = true;
-                    hitInfo.distance = dist;
-                    hitInfo.material = Material(vec3(1.0, 0.5, 0.2), false, 0.0, 1.0, false, 0.0); // gold
-                    vec2 uv = tri.uv1.xy * (1.0 - tuv.y - tuv.z) + tri.uv2.xy * tuv.y + tri.uv3.xy * tuv.z;
-                    //hitInfo.material = Material(texture(model_texture, uv).rgb, true, 0.0, 1.0, false, 0.0);
-                    //hitInfo.material = Material(vec3(1), true, 0.0, 1.0, false, 0.0);
-                    // monu2
-                    /*if (hitInfo.material.albedo == vec3(255.0/255.0, 148.0/255.0, 0.0/255.0)) {
-                        hitInfo.material.emission = 3.0;
+    if (enable_bvh) {
+        int stack[32];
+        int index = 0;
+        stack[index++] = 0;
+        while (index > 0) {
+            int nodeIndex = stack[--index];
+            Node node = nodes[nodeIndex];
+            if (node.child_index == 0) {
+                for (int i = int(node.triangle_start_index); i < int(node.triangle_start_index + node.triangles_count); i++) {
+                    vec3 normal;
+                    Triangle tri = triangles[i];
+                    vec3 tuv = intersect_triangle(ray, tri.v1, tri.v2, tri.v3, normal);
+                    dist = tuv.x;
+                    triangleTests++;
+                    if (dist > 0 && dist < hitInfo.distance) {
+                        hit = true;
+                        hitInfo.distance = dist;
+                        //                  hitInfo.material = Material(vec3(1.0, 0.7, 0.3), true, 0.0, 0.4, false, 0.0); // gold
+                        vec2 uv = tri.uv1.xy * (1.0 - tuv.y - tuv.z) + tri.uv2.xy * tuv.y + tri.uv3.xy * tuv.z;
+                        //hitInfo.material = Material(texture(model_texture, uv).rgb, true, 0.0, 1.0, false, 0.0);
+                        hitInfo.material = Material(vec3(1.0, 0.7, 0.3), false, 0.0, 1.0, false, 0.0);
+
+                        hitInfo.normal = normalize(normal);
                     }
-                    if (hitInfo.material.albedo == vec3(158.0/255.0, 164.0/255.0, 110.0/255.0)) {
-                        hitInfo.material.emission = 3.0;
-                    }*//**
-
-                    // nebulae
-                    *//**if (hitInfo.material.albedo == vec3(1.0/255.0, 200.0/255.0, 239.0/255.0)) {
-                        hitInfo.material.emission = 3.0;
-                    }
-                    if (hitInfo.material.albedo == vec3(106.0/255.0, 200.0/255.0, 239.0/255.0)) {
-                        hitInfo.material.emission = 3.0;
-                    }
-                    if (hitInfo.material.albedo == vec3(228.0/255.0, 100.0/255.0, 159.0/255.0)) {
-                        hitInfo.material.emission = 3.0;
-                    }*//**
-
-                    // portal
-                    *//**if (hitInfo.material.albedo == vec3(103.0/255.0, 215.0/255.0, 190.0/255.0)) hitInfo.material.emission = 3.0;
-                    if (hitInfo.material.albedo == vec3(219.0/255.0, 46.0/255.0, 46.0/255.0)) hitInfo.material.emission = 3.0;
-                    if (hitInfo.material.albedo == vec3(212.0/255.0, 78.0/255.0, 112.0/255.0)) hitInfo.material.emission = 3.0;
-                    if (hitInfo.material.albedo == vec3(210.0/255.0, 11.0/255.0, 21.0/255.0)) hitInfo.material.emission = 3.0;
-                    if (hitInfo.material.albedo == vec3(197.0/255.0, 25.0/255.0, 31.0/255.0)) hitInfo.material.emission = 3.0;
-                    if (hitInfo.material.albedo == vec3(255.0/255.0, 255.0/255.0, 255.0/255.0) && vec3(ray.origin + ray.dir * hitInfo.distance).x > 0.0) hitInfo.material.emission = 3.0;
-
-                    if (hitInfo.material.albedo.r >= 20.0/255.0 && hitInfo.material.albedo.r <= 150.0/255.0 &&
-                    hitInfo.material.albedo.g >= 140.0/255.0 && hitInfo.material.albedo.g <= 255.0/255.0 &&
-                    hitInfo.material.albedo.b >= 230.0/255.0 && hitInfo.material.albedo.b <= 255.0/255.0
-                    ) hitInfo.material.emission = 3.0;
-
-                    if (hitInfo.material.albedo.r >= 200.0/255.0 && hitInfo.material.albedo.r <= 255.0/255.0 &&
-                    hitInfo.material.albedo.g >= 120.0/255.0 && hitInfo.material.albedo.g <= 255.0/255.0 &&
-                    hitInfo.material.albedo.b >= 0.0/255.0 && hitInfo.material.albedo.b <= 150.0/255.0
-                    ) hitInfo.material.emission = 3.0;*//**
-
-                    //hitInfo.material = Material(vec3(1.0), true, 0.0, 1.0, false, 0.0);
-                    hitInfo.normal = normalize(normal);
                 }
+            } else {
+                int firstChildIndex = int(node.child_index);
+                int secondChildIndex = int(node.child_index) + 1;
+                Node firstChild = nodes[firstChildIndex];
+                Node secondChild = nodes[secondChildIndex];
+
+                float firstChildDist = intersect_bounding_box(ray, firstChild.bounds);
+                float secondChildDist = intersect_bounding_box(ray, secondChild.bounds);
+                boundsTests += 2;
+
+                bool isNearestFirst = firstChildDist < secondChildDist;
+                float distNear = isNearestFirst ? firstChildDist : secondChildDist;
+                float distFar = isNearestFirst ? secondChildDist : firstChildDist;
+                int childIndexNear = isNearestFirst ? firstChildIndex : secondChildIndex;
+                int childIndexFar = isNearestFirst ? secondChildIndex : firstChildIndex;
+
+                if (distFar != -1.0 && distFar < hitInfo.distance) stack[index++] = childIndexFar;
+                if (distNear != -1.0 && distNear < hitInfo.distance) stack[index++] = childIndexNear;
             }
-        } else {
-            int firstChildIndex = int(node.child_index);
-            int secondChildIndex = int(node.child_index) + 1;
-            Node firstChild = nodes[firstChildIndex];
-            Node secondChild = nodes[secondChildIndex];
-
-            float firstChildDist = intersect_bounding_box(ray, firstChild.bounds);
-            float secondChildDist = intersect_bounding_box(ray, secondChild.bounds);
-            boundsTests += 2;
-
-            bool isNearestFirst = firstChildDist < secondChildDist;
-            float distNear = isNearestFirst ? firstChildDist : secondChildDist;
-            float distFar = isNearestFirst ? secondChildDist : firstChildDist;
-            int childIndexNear = isNearestFirst ? firstChildIndex : secondChildIndex;
-            int childIndexFar = isNearestFirst ? secondChildIndex : firstChildIndex;
-
-            if (distFar != -1.0 && distFar < hitInfo.distance) stack[index++] = childIndexFar;
-            if (distNear != -1.0 && distNear < hitInfo.distance) stack[index++] = childIndexNear;
         }
-    }*/
+    }
     // ray marching
     /*vec3 trap;
     dist = intersect(ray.o, ray.d, trap);
@@ -544,6 +509,17 @@ void main() {
     vec3 dir = normalize(vec3(uv * fov_converted, 1.0) * mat3(camera_rotation));
     raycast(Ray(camera_position, dir, 1.0 / dir, vec3(0.0)), hitinfo);
 
+    if (debug_bvh) {
+        float bounds_weight = boundsTests / float(bounds_test_threshold);
+        float triangles_weight = triangleTests / float(triangle_test_threshold);
+        vec3 debug_color = max(bounds_weight, triangles_weight) > 1.0 ? vec3(1.0) : vec3(triangles_weight, 0.0, bounds_weight);
+//        vec3 debug_color = bounds_weight > 1.0 ? vec3(1.0, 0.0, 0.0) : vec3(bounds_weight);
+        imageStore(color_image, ivec2(gl_GlobalInvocationID.xy), vec4(debug_color, 0.0));
+        imageStore(albedo_image, ivec2(gl_GlobalInvocationID.xy), vec4(1.0, 1.0, 1.0, 0.0));
+        imageStore(normal_image, ivec2(gl_GlobalInvocationID.xy), vec4(hitinfo.normal, hitinfo.distance));
+        return;
+    }
+
     vec3 color = vec3(0.0);
     if (isCurrentPixelActive(gl_GlobalInvocationID.xy, frame_index)) {
         for (int i = 0; i < samples; i++) {
@@ -554,13 +530,6 @@ void main() {
 
     // demodulate albedo
     color /= max(hitinfo.material.albedo, vec3(0.001));
-
-    /*if (debug_bvh) {
-        float bounds_weight = boundsTests / float(bounds_test_threshold);
-        float triangles_weight = triangleTests / float(triangle_test_threshold);
-        //color = max(bounds_weight, triangles_weight) > 1.0 ? vec3(1.0) : vec3(triangles_weight, 0.0, bounds_weight);
-        color = bounds_weight > 1.0 ? vec3(1.0, 0.0, 0.0) : vec3(bounds_weight);
-    }*/
 
     float variance = 0.0;
     float factor = accumulated_samples / (accumulated_samples + 1.0);
